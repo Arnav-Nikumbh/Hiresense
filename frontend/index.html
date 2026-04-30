@@ -1,0 +1,940 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>HireSense AI — Intelligent Resume Analysis</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --bg:#0a0a0f;--surface:#111118;--surface2:#1a1a24;--surface3:#222230;
+  --border:rgba(255,255,255,0.07);--border2:rgba(255,255,255,0.12);
+  --accent:#6c63ff;--accent2:#a78bfa;--accent3:#38bdf8;
+  --green:#34d399;--red:#f87171;--yellow:#fbbf24;--orange:#fb923c;
+  --text:#f0f0f8;--text2:#9898b8;--text3:#5a5a7a;
+  --font-d:'Syne',sans-serif;--font-b:'DM Sans',sans-serif;
+  --r:16px;--r2:12px;--tr:0.2s cubic-bezier(0.4,0,0.2,1);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:var(--font-b);background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
+.bg-mesh{position:fixed;inset:0;z-index:0;pointer-events:none;
+  background:radial-gradient(ellipse 80% 60% at 10% 10%,rgba(108,99,255,.08) 0%,transparent 60%),
+    radial-gradient(ellipse 60% 50% at 90% 80%,rgba(56,189,248,.05) 0%,transparent 60%)}
+.app-wrap{position:relative;z-index:1;max-width:1300px;margin:0 auto;padding:0 24px}
+
+/* Nav */
+nav{display:flex;align-items:center;justify-content:space-between;padding:20px 0;border-bottom:1px solid var(--border)}
+.logo{display:flex;align-items:center;gap:10px;font-family:var(--font-d);font-size:22px;font-weight:800;letter-spacing:-.5px}
+.logo-icon{width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,var(--accent),var(--accent3));display:flex;align-items:center;justify-content:center;font-size:16px}
+.logo span{color:var(--accent2)}
+.nav-right{display:flex;align-items:center;gap:10px}
+.gemini-badge{font-size:11px;font-weight:600;padding:4px 12px;border-radius:20px;background:rgba(52,211,153,.1);border:1px solid rgba(52,211,153,.25);color:var(--green)}
+.gemini-badge.offline{background:rgba(248,113,113,.08);border-color:rgba(248,113,113,.2);color:var(--red)}
+
+/* Hero */
+.hero{text-align:center;padding:52px 0 40px}
+.hero-eyebrow{display:inline-flex;align-items:center;gap:8px;font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:1.5px;color:var(--accent2);background:rgba(167,139,250,.08);border:1px solid rgba(167,139,250,.18);padding:5px 14px;border-radius:20px;margin-bottom:22px}
+.hero-eyebrow::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--accent2);animation:pulse 2s infinite}
+.hero h1{font-family:var(--font-d);font-size:clamp(36px,5.5vw,66px);font-weight:800;line-height:1.05;letter-spacing:-2px;margin-bottom:16px}
+.hero h1 .grad{background:linear-gradient(120deg,var(--accent),var(--accent2) 40%,var(--accent3));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.hero-sub{font-size:17px;color:var(--text2);max-width:520px;margin:0 auto 32px;line-height:1.7;font-weight:300}
+
+/* Grid */
+.main-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;padding-bottom:60px}
+@media(max-width:900px){.main-grid{grid-template-columns:1fr}}
+
+/* Cards */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:24px;transition:var(--tr)}
+.card:hover{border-color:var(--border2)}
+.card-title{font-family:var(--font-d);font-size:15px;font-weight:700;margin-bottom:3px;display:flex;align-items:center;gap:8px}
+.card-sub{font-size:12px;color:var(--text2);margin-bottom:20px}
+
+/* Upload */
+.upload-zone{border:2px dashed var(--border2);border-radius:var(--r2);padding:40px 20px;text-align:center;cursor:pointer;transition:var(--tr)}
+.upload-zone.dragover,.upload-zone:hover{border-color:var(--accent);background:rgba(108,99,255,.04)}
+.upload-zone.has-file{border-style:solid;border-color:var(--green);background:rgba(52,211,153,.04)}
+.upload-zone input{display:none}
+.upload-icon{width:52px;height:52px;border-radius:14px;background:var(--surface2);display:flex;align-items:center;justify-content:center;margin:0 auto 14px;font-size:22px;transition:var(--tr)}
+.upload-zone:hover .upload-icon{background:rgba(108,99,255,.15)}
+.upload-primary{font-family:var(--font-d);font-size:15px;font-weight:600;margin-bottom:5px}
+.upload-secondary{font-size:13px;color:var(--text2)}
+.upload-types{display:flex;gap:5px;justify-content:center;margin-top:12px;flex-wrap:wrap}
+.upload-type-badge{font-size:11px;font-weight:500;padding:3px 8px;border-radius:6px;background:var(--surface2);color:var(--text2);border:1px solid var(--border)}
+.file-chosen{display:none;flex-direction:column;align-items:center;gap:7px}
+.file-chosen.show{display:flex}
+.file-chosen-name{font-size:14px;font-weight:500;color:var(--green)}
+.file-chosen-change{font-size:12px;color:var(--text3);cursor:pointer}
+.file-chosen-change:hover{color:var(--accent2)}
+
+/* Textarea */
+.jd-label{font-size:13px;font-weight:500;color:var(--text2);margin-bottom:7px;display:flex;justify-content:space-between;align-items:center}
+.optional-badge{font-size:11px;color:var(--text3);background:var(--surface2);padding:2px 8px;border-radius:6px}
+textarea{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r2);color:var(--text);font-family:var(--font-b);font-size:14px;line-height:1.6;padding:12px 14px;resize:vertical;min-height:140px;transition:var(--tr);outline:none}
+textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(108,99,255,.12)}
+textarea::placeholder{color:var(--text3)}
+
+/* Btn */
+.btn-analyze{width:100%;margin-top:18px;padding:15px;background:linear-gradient(135deg,var(--accent),#8b5cf6);border:none;border-radius:var(--r2);color:#fff;font-family:var(--font-d);font-size:15px;font-weight:700;cursor:pointer;transition:var(--tr);display:flex;align-items:center;justify-content:center;gap:8px;position:relative;overflow:hidden}
+.btn-analyze:hover{transform:translateY(-1px);box-shadow:0 8px 28px rgba(108,99,255,.4)}
+.btn-analyze:disabled{opacity:.5;cursor:not-allowed;transform:none;box-shadow:none}
+.btn-analyze.loading .btn-text{display:none}
+.btn-analyze.loading .spinner{display:flex}
+.spinner{display:none;align-items:center;gap:8px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.spinner-svg{animation:spin .8s linear infinite}
+.btn-download{width:100%;margin-top:10px;padding:12px;background:transparent;border:1px solid var(--border2);border-radius:var(--r2);color:var(--text2);font-family:var(--font-d);font-size:14px;font-weight:600;cursor:pointer;transition:var(--tr);display:none;align-items:center;justify-content:center;gap:8px}
+.btn-download:hover{border-color:var(--green);color:var(--green);background:rgba(52,211,153,.06)}
+.btn-download.show{display:flex}
+
+/* Score card */
+.results-panel{display:none}
+.results-panel.show{display:block}
+.score-hero{display:flex;align-items:center;gap:24px;flex-wrap:wrap}
+.score-ring-wrap{position:relative;flex-shrink:0}
+.score-ring{width:110px;height:110px}
+.score-ring-text{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.score-num{font-family:var(--font-d);font-size:28px;font-weight:800;line-height:1;background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.score-pct{font-size:11px;color:var(--text3)}
+.score-grade{font-family:var(--font-d);font-size:22px;font-weight:800;margin-bottom:5px}
+.ats-row{display:flex;align-items:center;gap:10px;margin-top:14px}
+.ats-label{font-size:12px;color:var(--text2);white-space:nowrap}
+.ats-bar-track{flex:1;height:5px;background:var(--surface3);border-radius:3px;overflow:hidden}
+.ats-bar-fill{height:100%;border-radius:3px;background:linear-gradient(90deg,var(--accent3),var(--accent2));transition:width 1.2s cubic-bezier(.4,0,.2,1)}
+.ats-score-val{font-size:12px;font-weight:600;color:var(--accent3);white-space:nowrap}
+.breakdown-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:16px}
+.breakdown-label{display:flex;justify-content:space-between;font-size:12px;margin-bottom:5px}
+.breakdown-label span:last-child{font-weight:600}
+.breakdown-bar{height:7px;background:var(--surface3);border-radius:4px;overflow:hidden}
+.breakdown-fill{height:100%;border-radius:4px;transition:width 1s cubic-bezier(.4,0,.2,1)}
+.fill-purple{background:linear-gradient(90deg,var(--accent),var(--accent2))}
+.fill-blue{background:linear-gradient(90deg,var(--accent3),#818cf8)}
+.fill-green{background:linear-gradient(90deg,var(--green),#6ee7b7)}
+.fill-yellow{background:linear-gradient(90deg,var(--yellow),#fde68a)}
+
+/* Hiring verdict */
+.verdict-box{margin-top:16px;padding:12px 16px;border-radius:var(--r2);display:flex;align-items:flex-start;gap:10px;font-size:13px}
+.verdict-box.strong_yes{background:rgba(52,211,153,.08);border:1px solid rgba(52,211,153,.2)}
+.verdict-box.yes{background:rgba(52,211,153,.05);border:1px solid rgba(52,211,153,.15)}
+.verdict-box.maybe{background:rgba(251,191,36,.06);border:1px solid rgba(251,191,36,.2)}
+.verdict-box.no{background:rgba(248,113,113,.06);border:1px solid rgba(248,113,113,.18)}
+.verdict-icon{font-size:18px;flex-shrink:0}
+
+/* Pills */
+.pills{display:flex;flex-wrap:wrap;gap:5px}
+.pill{font-size:12px;font-weight:500;padding:4px 10px;border-radius:20px}
+.pill-matched{background:rgba(52,211,153,.1);color:var(--green);border:1px solid rgba(52,211,153,.2)}
+.pill-missing{background:rgba(248,113,113,.08);color:var(--red);border:1px solid rgba(248,113,113,.18)}
+.pill-transfer{background:rgba(251,191,36,.08);color:var(--yellow);border:1px solid rgba(251,191,36,.2)}
+.pill-tech{background:var(--surface2);color:var(--text2);border:1px solid var(--border)}
+.pill-soft{background:rgba(56,189,248,.08);color:var(--accent3);border:1px solid rgba(56,189,248,.18)}
+.pill-domain{background:rgba(167,139,250,.1);color:var(--accent2);border:1px solid rgba(167,139,250,.2)}
+
+/* Info rows */
+.info-row{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--border)}
+.info-row:last-child{border-bottom:none}
+.info-icon{width:30px;height:30px;border-radius:8px;background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0}
+.info-label{font-size:11px;color:var(--text3);margin-bottom:1px}
+.info-val{font-size:13px;font-weight:500}
+
+/* Experience */
+.exp-entry{padding:12px 0;border-bottom:1px solid var(--border)}
+.exp-entry:last-child{border-bottom:none}
+.exp-header{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
+.exp-title{font-family:var(--font-d);font-size:14px;font-weight:700}
+.exp-company{font-size:13px;color:var(--accent2);margin-top:2px}
+.exp-duration{font-size:11px;color:var(--text3);white-space:nowrap;background:var(--surface2);padding:3px 9px;border-radius:20px;border:1px solid var(--border);flex-shrink:0}
+.exp-bullets{margin-top:8px;list-style:none;padding:0}
+.exp-bullets li{font-size:13px;color:var(--text2);padding:3px 0 3px 14px;position:relative;line-height:1.5}
+.exp-bullets li::before{content:'';position:absolute;left:0;top:10px;width:4px;height:4px;border-radius:50%;background:var(--accent)}
+
+/* Suggestions */
+.suggestion-item{display:flex;gap:12px;padding:12px;background:var(--surface2);border-radius:var(--r2);border:1px solid var(--border);margin-bottom:9px;transition:var(--tr)}
+.suggestion-item:hover{border-color:var(--border2)}
+.sug-icon{width:34px;height:34px;border-radius:9px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:15px}
+.sug-high .sug-icon{background:rgba(248,113,113,.12)}
+.sug-medium .sug-icon{background:rgba(251,191,36,.12)}
+.sug-low .sug-icon{background:rgba(56,189,248,.12)}
+.sug-title{font-size:14px;font-weight:600;margin-bottom:4px}
+.sug-detail{font-size:13px;color:var(--text2);line-height:1.5;margin-bottom:4px}
+.sug-problem{font-size:12px;color:var(--red);opacity:.8;margin-bottom:4px}
+.sug-example{font-size:12px;color:var(--text3);font-style:italic;padding:6px 8px;background:var(--surface3);border-radius:6px;margin:4px 0}
+.sug-impact{font-size:11px;font-weight:600;display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:6px;background:rgba(52,211,153,.1);color:var(--green)}
+.gemini-badge-small{font-size:10px;font-weight:600;padding:1px 7px;border-radius:10px;background:rgba(52,211,153,.1);color:var(--green);border:1px solid rgba(52,211,153,.2);margin-left:6px}
+
+/* Tabs */
+.tabs{display:flex;gap:3px;margin-bottom:18px;background:var(--surface2);padding:4px;border-radius:10px}
+.tab{flex:1;padding:7px 10px;border-radius:7px;border:none;background:none;color:var(--text2);font-family:var(--font-b);font-size:12px;font-weight:500;cursor:pointer;transition:var(--tr);text-align:center}
+.tab.active{background:var(--surface);color:var(--text);box-shadow:0 2px 8px rgba(0,0,0,.2)}
+.tab:hover:not(.active){color:var(--text)}
+.tab-content{display:none}
+.tab-content.active{display:block}
+
+/* Section header */
+.section-header{font-family:var(--font-d);font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--text3);margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.section-header::after{content:'';flex:1;height:1px;background:var(--border)}
+
+/* Skill categories */
+.skill-category{margin-bottom:14px}
+.skill-category-label{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:1px;color:var(--text3);margin-bottom:7px;display:flex;align-items:center;gap:5px}
+.skill-count{background:var(--surface2);color:var(--text3);font-size:10px;padding:1px 6px;border-radius:10px}
+
+/* Education, projects */
+.edu-entry{display:flex;gap:10px;padding:10px 0;border-bottom:1px solid var(--border)}
+.edu-entry:last-child{border-bottom:none}
+.edu-icon{width:34px;height:34px;border-radius:9px;background:rgba(108,99,255,.1);display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0}
+.edu-degree{font-size:14px;font-weight:600}
+.edu-inst{font-size:13px;color:var(--text2);margin-top:2px}
+.edu-meta{font-size:12px;color:var(--text3);margin-top:3px}
+.proj-entry{padding:11px 0;border-bottom:1px solid var(--border)}
+.proj-entry:last-child{border-bottom:none}
+.proj-name{font-family:var(--font-d);font-size:14px;font-weight:700;margin-bottom:5px}
+.proj-desc{font-size:13px;color:var(--text2);line-height:1.5;margin-bottom:7px}
+.proj-techs{display:flex;flex-wrap:wrap;gap:4px}
+.proj-tech{font-size:11px;font-weight:500;padding:2px 7px;border-radius:6px;background:var(--surface2);color:var(--accent2);border:1px solid rgba(108,99,255,.2)}
+
+/* Empty state */
+.empty-results{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:50px 20px;text-align:center;gap:14px;color:var(--text3)}
+.empty-icon{font-size:44px}
+
+/* ── CHATBOT ── */
+.chat-fab{position:fixed;bottom:28px;right:28px;z-index:200;width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,var(--accent),#8b5cf6);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:22px;box-shadow:0 8px 30px rgba(108,99,255,.5);transition:var(--tr)}
+.chat-fab:hover{transform:scale(1.08);box-shadow:0 12px 40px rgba(108,99,255,.6)}
+.chat-fab .fab-close{display:none}
+.chat-fab.open .fab-open{display:none}
+.chat-fab.open .fab-close{display:block}
+.chat-unread{position:absolute;top:-2px;right:-2px;width:16px;height:16px;border-radius:50%;background:var(--red);font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;border:2px solid var(--bg)}
+
+.chat-window{position:fixed;bottom:98px;right:28px;z-index:199;width:380px;max-height:580px;background:var(--surface);border:1px solid var(--border2);border-radius:20px;box-shadow:0 24px 60px rgba(0,0,0,.6);display:flex;flex-direction:column;overflow:hidden;transition:all .3s cubic-bezier(.4,0,.2,1);transform:translateY(20px) scale(.95);opacity:0;pointer-events:none}
+.chat-window.open{transform:translateY(0) scale(1);opacity:1;pointer-events:all}
+@media(max-width:500px){.chat-window{width:calc(100vw - 32px);right:16px}}
+
+.chat-header{padding:16px 18px;background:var(--surface2);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px}
+.chat-avatar{width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent3));display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
+.chat-header-info{}
+.chat-header-name{font-family:var(--font-d);font-size:14px;font-weight:700}
+.chat-header-status{font-size:11px;color:var(--green);display:flex;align-items:center;gap:4px}
+.chat-header-status::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--green)}
+.chat-clear{margin-left:auto;background:none;border:none;color:var(--text3);cursor:pointer;font-size:12px;padding:4px 8px;border-radius:6px;transition:var(--tr)}
+.chat-clear:hover{color:var(--text);background:var(--surface3)}
+
+.chat-messages{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:12px;min-height:200px;max-height:380px}
+.chat-messages::-webkit-scrollbar{width:4px}
+.chat-messages::-webkit-scrollbar-thumb{background:var(--surface3);border-radius:2px}
+
+.msg{display:flex;gap:8px;animation:msgIn .25s ease}
+@keyframes msgIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.msg.user{flex-direction:row-reverse}
+.msg-bubble{max-width:88%;padding:10px 14px;border-radius:16px;font-size:13px;line-height:1.55}
+.msg.user .msg-bubble{background:linear-gradient(135deg,var(--accent),#8b5cf6);color:#fff;border-bottom-right-radius:4px}
+.msg.assistant .msg-bubble{background:var(--surface2);color:var(--text);border:1px solid var(--border);border-bottom-left-radius:4px}
+.msg-avatar{width:28px;height:28px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:13px}
+.msg.user .msg-avatar{background:rgba(108,99,255,.2)}
+.msg.assistant .msg-avatar{background:linear-gradient(135deg,var(--accent),var(--accent3))}
+
+.typing-indicator{display:flex;gap:4px;padding:12px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:16px;border-bottom-left-radius:4px;width:fit-content}
+.typing-dot{width:6px;height:6px;border-radius:50%;background:var(--text3);animation:typingBounce 1.2s infinite}
+.typing-dot:nth-child(2){animation-delay:.2s}
+.typing-dot:nth-child(3){animation-delay:.4s}
+@keyframes typingBounce{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-6px)}}
+
+.chat-suggestions{padding:0 14px 8px;display:flex;flex-wrap:wrap;gap:5px}
+.chat-suggestion{font-size:11px;padding:5px 10px;border-radius:20px;background:var(--surface2);border:1px solid var(--border);color:var(--text2);cursor:pointer;transition:var(--tr);white-space:nowrap}
+.chat-suggestion:hover{border-color:var(--accent);color:var(--accent2);background:rgba(108,99,255,.08)}
+
+.chat-input-row{padding:12px 14px;border-top:1px solid var(--border);display:flex;gap:8px;align-items:flex-end}
+.chat-input{flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:12px;color:var(--text);font-family:var(--font-b);font-size:13px;padding:10px 14px;resize:none;min-height:40px;max-height:100px;outline:none;transition:var(--tr);line-height:1.4}
+.chat-input:focus{border-color:var(--accent)}
+.chat-input::placeholder{color:var(--text3)}
+.chat-send{width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,var(--accent),#8b5cf6);border:none;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:var(--tr);font-size:15px}
+.chat-send:hover{transform:scale(1.08)}
+.chat-send:disabled{opacity:.4;cursor:not-allowed;transform:none}
+
+/* Toast */
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(80px);z-index:300;background:var(--surface);border:1px solid var(--border2);border-radius:var(--r2);padding:12px 18px;box-shadow:0 8px 28px rgba(0,0,0,.4);display:flex;align-items:center;gap:8px;font-size:13px;opacity:0;transition:all .3s ease;white-space:nowrap}
+.toast.show{transform:translateX(-50%) translateY(0);opacity:1}
+.toast.error{border-color:rgba(248,113,113,.3)}
+.toast.success{border-color:rgba(52,211,153,.3)}
+
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+@keyframes fadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.animate-in{animation:fadeIn .35s ease forwards}
+
+footer{text-align:center;padding:28px 0;border-top:1px solid var(--border);color:var(--text3);font-size:13px}
+footer a{color:var(--accent2);text-decoration:none}
+
+/* Markdown-like in chat bubbles */
+.msg-bubble strong{font-weight:600}
+.msg-bubble ul{padding-left:14px;margin:6px 0}
+.msg-bubble li{margin:3px 0}
+.msg-bubble p{margin:4px 0}
+</style>
+</head>
+<body>
+<div class="bg-mesh"></div>
+<div class="app-wrap">
+
+<nav>
+  <div class="logo">
+    <div class="logo-icon">🧠</div>
+    Hire<span>Sense</span> AI
+  </div>
+  <div class="nav-right">
+    <div class="gemini-badge offline" id="geminiBadge">Gemini: checking…</div>
+  </div>
+</nav>
+
+<section class="hero">
+  <div class="hero-eyebrow">Gemini 2.0 Flash + NLP Powered</div>
+  <h1>Smart Resume<br/><span class="grad">Analysis & Coaching</span></h1>
+  <p class="hero-sub">Upload your resume for AI-powered skill extraction, job matching, and personalized coaching from your built-in career assistant.</p>
+</section>
+
+<div class="main-grid">
+
+  <!-- LEFT COLUMN -->
+  <div>
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-title">📄 Upload Resume</div>
+      <div class="card-sub">PDF, PNG, JPEG, or TXT — OCR supported</div>
+      <div class="upload-zone" id="uploadZone">
+        <input type="file" id="fileInput" accept=".pdf,.png,.jpg,.jpeg,.txt"/>
+        <div id="uploadDefault">
+          <div class="upload-icon">📎</div>
+          <div class="upload-primary">Drop file here or click to browse</div>
+          <div class="upload-secondary">Max 10MB · PDF, Image, or Text</div>
+          <div class="upload-types">
+            <span class="upload-type-badge">PDF</span>
+            <span class="upload-type-badge">PNG</span>
+            <span class="upload-type-badge">JPEG</span>
+            <span class="upload-type-badge">TXT</span>
+          </div>
+        </div>
+        <div class="file-chosen" id="fileChosen">
+          <div style="font-size:30px">✅</div>
+          <div class="file-chosen-name" id="fileChosenName"></div>
+          <div class="file-chosen-change" onclick="resetFile()">Change file</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-title">🎯 Job Description</div>
+      <div class="card-sub">Paste for AI-powered match scoring</div>
+      <div class="jd-label"><span>Job Description</span><span class="optional-badge">Optional</span></div>
+      <textarea id="jdInput" placeholder="Paste job description here for AI skill matching and scoring…"></textarea>
+    </div>
+
+    <button class="btn-analyze" id="analyzeBtn" onclick="analyzeResume()">
+      <span class="btn-text">✨ Analyze with Gemini AI</span>
+      <span class="spinner">
+        <svg class="spinner-svg" width="18" height="18" viewBox="0 0 24 24" fill="none">
+          <circle cx="12" cy="12" r="9" stroke="rgba(255,255,255,.3)" stroke-width="3"/>
+          <path d="M21 12a9 9 0 00-9-9" stroke="white" stroke-width="3" stroke-linecap="round"/>
+        </svg>
+        Analyzing…
+      </span>
+    </button>
+    <button class="btn-download" id="downloadBtn" onclick="downloadJSON()">
+      ⬇ Download Resume as JSON
+    </button>
+
+    <!-- Score Card -->
+    <div id="scoreCard" class="card results-panel" style="margin-top:16px">
+      <div class="card-title">📊 Match Score</div>
+      <div class="card-sub" id="scoreFilename">—</div>
+      <div class="score-hero">
+        <div class="score-ring-wrap">
+          <svg class="score-ring" viewBox="0 0 110 110">
+            <circle cx="55" cy="55" r="46" fill="none" stroke="var(--surface3)" stroke-width="9"/>
+            <circle id="scoreCircle" cx="55" cy="55" r="46" fill="none" stroke="url(#sg)" stroke-width="9" stroke-linecap="round"
+              stroke-dasharray="289" stroke-dashoffset="289" transform="rotate(-90 55 55)" style="transition:stroke-dashoffset 1.4s cubic-bezier(.4,0,.2,1)"/>
+            <defs><linearGradient id="sg" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stop-color="#6c63ff"/><stop offset="100%" stop-color="#a78bfa"/>
+            </linearGradient></defs>
+          </svg>
+          <div class="score-ring-text">
+            <div class="score-num" id="scoreNum">0</div>
+            <div class="score-pct">/ 100</div>
+          </div>
+        </div>
+        <div style="flex:1;min-width:160px">
+          <div class="score-grade" id="scoreGrade">—</div>
+          <div style="font-size:12px;color:var(--text2)" id="scoreReqYears"></div>
+          <div class="ats-row">
+            <span class="ats-label">ATS</span>
+            <div class="ats-bar-track"><div class="ats-bar-fill" id="atsBarFill" style="width:0%"></div></div>
+            <span class="ats-score-val" id="atsScoreVal">0%</span>
+          </div>
+        </div>
+      </div>
+      <div class="breakdown-grid" id="breakdownGrid"></div>
+      <div id="verdictBox"></div>
+    </div>
+  </div>
+
+  <!-- RIGHT COLUMN -->
+  <div>
+    <div class="card" id="emptyState">
+      <div class="empty-results">
+        <div class="empty-icon">🔍</div>
+        <div class="card-title" style="justify-content:center">Waiting for Resume</div>
+        <p style="font-size:13px;max-width:220px;line-height:1.6">Upload a resume and click Analyze. Gemini AI will extract skills, match them to your JD, and suggest improvements.</p>
+      </div>
+    </div>
+
+    <div id="resultsMain" class="results-panel">
+      <div class="tabs">
+        <button class="tab active" onclick="switchTab('skills')">Skills</button>
+        <button class="tab" onclick="switchTab('experience')">Experience</button>
+        <button class="tab" onclick="switchTab('profile')">Profile</button>
+        <button class="tab" onclick="switchTab('suggestions')">💡 Tips</button>
+      </div>
+
+      <div class="tab-content active" id="tab-skills">
+        <div class="card"><div id="skillsContent"></div></div>
+      </div>
+      <div class="tab-content" id="tab-experience">
+        <div class="card"><div id="experienceContent"></div></div>
+      </div>
+      <div class="tab-content" id="tab-profile">
+        <div class="card" style="margin-bottom:14px"><div class="card-title">👤 Contact</div><div id="contactContent" style="margin-top:10px"></div></div>
+        <div class="card" style="margin-bottom:14px"><div class="card-title">🎓 Education</div><div id="educationContent" style="margin-top:10px"></div></div>
+        <div class="card" style="margin-bottom:14px"><div class="card-title">🚀 Projects</div><div id="projectsContent" style="margin-top:10px"></div></div>
+        <div class="card" id="certsCard" style="display:none"><div class="card-title">🏆 Certifications</div><div id="certsContent" style="margin-top:10px"></div></div>
+      </div>
+      <div class="tab-content" id="tab-suggestions">
+        <div class="card"><div id="suggestionsContent"></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<footer>Built with ❤️ using <strong>Gemini 2.0 Flash</strong>, <strong>FastAPI</strong>, <strong>Tesseract OCR</strong> &nbsp;·&nbsp; <a href="#">HireSense AI</a></footer>
+</div>
+
+<!-- ── CHATBOT ── -->
+<button class="chat-fab" id="chatFab" onclick="toggleChat()">
+  <span class="fab-open">💬</span>
+  <span class="fab-close">✕</span>
+  <div class="chat-unread" id="chatUnread" style="display:none">1</div>
+</button>
+
+<div class="chat-window" id="chatWindow">
+  <div class="chat-header">
+    <div class="chat-avatar">🤖</div>
+    <div class="chat-header-info">
+      <div class="chat-header-name">HireSense Assistant</div>
+      <div class="chat-header-status" id="chatStatus">Powered by Gemini 2.0 Flash</div>
+    </div>
+    <button class="chat-clear" onclick="clearChat()">Clear</button>
+  </div>
+  <div class="chat-messages" id="chatMessages">
+    <div class="msg assistant">
+      <div class="msg-avatar">🤖</div>
+      <div class="msg-bubble">
+        👋 Hi! I'm your AI resume coach powered by Gemini.<br/><br/>
+        Upload your resume first, then ask me anything — I'll give you <strong>specific advice</strong> based on your actual profile.<br/><br/>
+        What would you like to improve? 🚀
+      </div>
+    </div>
+  </div>
+  <div class="chat-suggestions" id="chatSuggestions">
+    <span class="chat-suggestion" onclick="sendSuggestion(this)">How do I improve my summary?</span>
+    <span class="chat-suggestion" onclick="sendSuggestion(this)">What skills should I learn next?</span>
+    <span class="chat-suggestion" onclick="sendSuggestion(this)">How to pass ATS screening?</span>
+    <span class="chat-suggestion" onclick="sendSuggestion(this)">Review my experience bullets</span>
+  </div>
+  <div class="chat-input-row">
+    <textarea class="chat-input" id="chatInput" placeholder="Ask about your resume, skills, career…" rows="1" onkeydown="handleChatKey(event)" oninput="autoResize(this)"></textarea>
+    <button class="chat-send" id="chatSend" onclick="sendChatMessage()">➤</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ─── State ───────────────────────────────────────────────────────
+let selectedFile = null;
+let analysisData = null;
+let extractedText = '';
+let chatHistory   = [];
+let chatOpen      = false;
+let geminiAvailable = false;
+
+// ─── Init ────────────────────────────────────────────────────────
+(async () => {
+  try {
+    const r = await fetch('/api/health');
+    const d = await r.json();
+    geminiAvailable = d.gemini_enabled;
+    const badge = document.getElementById('geminiBadge');
+    if (geminiAvailable) {
+      badge.textContent = '✦ Gemini Active';
+      badge.classList.remove('offline');
+    } else {
+      badge.textContent = '⚠ Gemini: Key Missing';
+    }
+  } catch(e) {}
+  // Show chat unread dot after 2s
+  setTimeout(() => {
+    if (!chatOpen) document.getElementById('chatUnread').style.display = 'flex';
+  }, 2000);
+})();
+
+// ─── File Handling ───────────────────────────────────────────────
+const uploadZone = document.getElementById('uploadZone');
+const fileInput  = document.getElementById('fileInput');
+
+uploadZone.addEventListener('click', () => fileInput.click());
+uploadZone.addEventListener('dragover', e => { e.preventDefault(); uploadZone.classList.add('dragover'); });
+uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('dragover'));
+uploadZone.addEventListener('drop', e => {
+  e.preventDefault(); uploadZone.classList.remove('dragover');
+  if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
+});
+fileInput.addEventListener('change', () => { if (fileInput.files[0]) handleFile(fileInput.files[0]); });
+
+function handleFile(file) {
+  selectedFile = file;
+  document.getElementById('uploadDefault').style.display = 'none';
+  document.getElementById('fileChosen').classList.add('show');
+  document.getElementById('fileChosenName').textContent = file.name;
+  uploadZone.classList.add('has-file');
+}
+function resetFile() {
+  selectedFile = null; fileInput.value = '';
+  document.getElementById('uploadDefault').style.display = 'block';
+  document.getElementById('fileChosen').classList.remove('show');
+  uploadZone.classList.remove('has-file');
+}
+
+// ─── Analysis ────────────────────────────────────────────────────
+async function analyzeResume() {
+  if (!selectedFile) { showToast('⚠️ Please upload a resume first', 'error'); return; }
+  const btn = document.getElementById('analyzeBtn');
+  btn.classList.add('loading'); btn.disabled = true;
+  try {
+    const fd = new FormData();
+    fd.append('file', selectedFile);
+    const jd = document.getElementById('jdInput').value.trim();
+    if (jd) fd.append('job_description', jd);
+    const res  = await fetch('/api/parse-resume', { method:'POST', body:fd });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || 'Analysis failed');
+    analysisData  = data;
+    extractedText = data.extracted_text || '';
+    renderResults(data);
+    // Update chatbot context suggestions
+    updateChatSuggestions(data.parsed);
+    showToast('✅ Analysis complete!', 'success');
+  } catch(e) {
+    showToast('❌ ' + (e.message || 'Something went wrong'), 'error');
+  } finally {
+    btn.classList.remove('loading'); btn.disabled = false;
+  }
+}
+
+// ─── Render ──────────────────────────────────────────────────────
+function renderResults(data) {
+  const { parsed, score, gemini_recommendations, gemini_available } = data;
+  document.getElementById('emptyState').style.display = 'none';
+  document.getElementById('downloadBtn').classList.add('show');
+  const rm = document.getElementById('resultsMain');
+  rm.classList.add('show','animate-in');
+  if (score) renderScore(score, data.filename);
+  renderSkills(parsed.skills, score, parsed);
+  renderExperience(parsed.experience, parsed.total_experience_years);
+  renderContact(parsed.contact);
+  renderEducation(parsed.education);
+  renderProjects(parsed.projects);
+  renderCerts(parsed.certifications);
+  renderSuggestions(parsed, score, gemini_recommendations, gemini_available);
+  switchTab('skills');
+}
+
+function renderScore(score, filename) {
+  document.getElementById('scoreCard').classList.add('show','animate-in');
+  document.getElementById('scoreFilename').textContent = filename || 'Analyzed Resume';
+  animateNumber(document.getElementById('scoreNum'), score.overall_score, 1200);
+  setTimeout(() => {
+    document.getElementById('scoreCircle').style.strokeDashoffset = 289 - (289 * score.overall_score / 100);
+  }, 100);
+  const gradeEl = document.getElementById('scoreGrade');
+  gradeEl.textContent = score.grade;
+  const gc = {'Excellent':'var(--green)','Good':'var(--accent2)','Fair':'var(--yellow)','Below Average':'var(--orange)','Needs Work':'var(--red)'};
+  gradeEl.style.color = gc[score.grade] || 'var(--text)';
+  if (score.required_years) document.getElementById('scoreReqYears').textContent = `Required: ${score.required_years}+ years`;
+  setTimeout(() => { document.getElementById('atsBarFill').style.width = score.ats_score + '%'; }, 300);
+  document.getElementById('atsScoreVal').textContent = score.ats_score + '%';
+
+  const bd = score.breakdown || {};
+  const items = [
+    {label:'Skills Match',    value:bd.skills_match||0,    cls:'fill-purple'},
+    {label:'Keyword Match',   value:bd.keyword_relevance||0, cls:'fill-blue'},
+    {label:'Experience',      value:bd.experience_match||0, cls:'fill-green'},
+    {label:'Education',       value:bd.education_match||0,  cls:'fill-yellow'},
+  ];
+  document.getElementById('breakdownGrid').innerHTML = items.map(i => `
+    <div>
+      <div class="breakdown-label"><span style="color:var(--text2)">${i.label}</span><span>${Math.round(i.value)}%</span></div>
+      <div class="breakdown-bar"><div class="breakdown-fill ${i.cls}" style="width:0%" data-t="${i.value}%"></div></div>
+    </div>`).join('');
+  setTimeout(() => document.querySelectorAll('.breakdown-fill').forEach(el => el.style.width = el.dataset.t), 200);
+
+  // Hiring verdict (Gemini)
+  const vb = document.getElementById('verdictBox');
+  if (score.hiring_recommendation) {
+    const icons = {strong_yes:'🏆',yes:'✅',maybe:'🤔',no:'❌'};
+    const labels = {strong_yes:'Strong Hire',yes:'Recommended',maybe:'Possible Fit',no:'Not Recommended'};
+    vb.innerHTML = `<div class="verdict-box ${score.hiring_recommendation}">
+      <div class="verdict-icon">${icons[score.hiring_recommendation]||'📋'}</div>
+      <div><strong>${labels[score.hiring_recommendation]||score.hiring_recommendation}</strong><br/>
+      <span style="color:var(--text2)">${score.recommendation_reason||''}</span></div>
+    </div>`;
+  } else vb.innerHTML = '';
+}
+
+function renderSkills(skills, score, parsed) {
+  const container = document.getElementById('skillsContent');
+  let html = '';
+
+  // Role & level badges
+  if (parsed.primary_role || parsed.experience_level) {
+    html += `<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px">`;
+    if (parsed.primary_role) html += `<span class="pill pill-domain">🎯 ${parsed.primary_role}</span>`;
+    if (parsed.experience_level) html += `<span class="pill pill-soft">📈 ${parsed.experience_level}</span>`;
+    if ((parsed.domain_expertise||[]).length) parsed.domain_expertise.slice(0,3).forEach(d => html += `<span class="pill pill-domain">${d}</span>`);
+    html += `</div>`;
+  }
+
+  // Gemini match section
+  if (score && score.gemini_match) {
+    const gm = score.gemini_match;
+    html += `<div class="section-header">Gemini AI Match Analysis <span class="gemini-badge-small">AI</span></div>`;
+    if (gm.matched_skills?.length) {
+      html += `<div style="margin-bottom:14px"><div class="skill-category-label">✅ Matched <span class="skill-count">${gm.matched_skills.length}</span></div>
+        <div class="pills">${gm.matched_skills.map(s=>`<span class="pill pill-matched">✓ ${s}</span>`).join('')}</div></div>`;
+    }
+    if (gm.missing_critical_skills?.length) {
+      html += `<div style="margin-bottom:14px"><div class="skill-category-label">❌ Critical Gaps <span class="skill-count">${gm.missing_critical_skills.length}</span></div>
+        <div class="pills">${gm.missing_critical_skills.map(s=>`<span class="pill pill-missing">✗ ${s}</span>`).join('')}</div></div>`;
+    }
+    if (gm.transferable_skills?.length) {
+      html += `<div style="margin-bottom:14px"><div class="skill-category-label">🔄 Transferable <span class="skill-count">${gm.transferable_skills.length}</span></div>
+        <div class="pills">${gm.transferable_skills.map(s=>`<span class="pill pill-transfer">${s}</span>`).join('')}</div></div>`;
+    }
+    if (gm.strengths?.length) {
+      html += `<div style="margin-bottom:14px"><div class="skill-category-label">💪 Strengths</div>
+        ${gm.strengths.map(s=>`<div style="font-size:13px;color:var(--text2);padding:3px 0 3px 10px;border-left:2px solid var(--green)">✦ ${s}</div>`).join('')}</div>`;
+    }
+    html += `<div class="section-header" style="margin-top:8px">All Detected Skills</div>`;
+  } else if (score?.matched_skills?.length) {
+    html += `<div class="section-header">Job Match</div>
+      <div style="margin-bottom:14px"><div class="skill-category-label">✅ Matched <span class="skill-count">${score.matched_skills.length}</span></div>
+      <div class="pills">${score.matched_skills.map(s=>`<span class="pill pill-matched">✓ ${s}</span>`).join('')}</div></div>`;
+    if (score.missing_skills?.length) {
+      html += `<div style="margin-bottom:14px"><div class="skill-category-label">❌ Missing <span class="skill-count">${score.missing_skills.length}</span></div>
+      <div class="pills">${score.missing_skills.map(s=>`<span class="pill pill-missing">✗ ${s}</span>`).join('')}</div></div>`;
+    }
+    html += `<div class="section-header">All Skills</div>`;
+  } else {
+    html += `<div class="section-header">All Skills <span style="font-family:var(--font-b);font-weight:400;color:var(--text3)">${skills?.total_count||0} found</span></div>`;
+  }
+
+  const catLabels = {languages:'💻 Languages',frameworks:'🔧 Frameworks',databases:'🗄️ Databases',cloud_devops:'☁️ Cloud & DevOps',ai_ml:'🤖 AI / ML',tools:'🛠️ Tools'};
+  for (const [cat, lst] of Object.entries(skills?.technical||{})) {
+    if (!lst?.length) continue;
+    html += `<div class="skill-category">
+      <div class="skill-category-label">${catLabels[cat]||cat} <span class="skill-count">${lst.length}</span></div>
+      <div class="pills">${lst.map(s=>`<span class="pill pill-tech">${s}</span>`).join('')}</div></div>`;
+  }
+  if (skills?.soft?.length) {
+    html += `<div class="skill-category"><div class="skill-category-label">🤝 Soft Skills <span class="skill-count">${skills.soft.length}</span></div>
+      <div class="pills">${skills.soft.map(s=>`<span class="pill pill-soft">${s}</span>`).join('')}</div></div>`;
+  }
+  if (!html) html = `<div style="color:var(--text3);font-size:14px">No skills detected.</div>`;
+  container.innerHTML = html;
+}
+
+function renderExperience(experience, totalYears) {
+  const c = document.getElementById('experienceContent');
+  let html = '';
+  if (totalYears > 0) html += `<div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;padding:10px 14px;background:rgba(108,99,255,.08);border-radius:10px;border:1px solid rgba(108,99,255,.15)">
+    <span>⏱️</span><span style="font-size:14px;font-weight:600">~${totalYears} years</span><span style="font-size:12px;color:var(--text2)">estimated experience</span></div>`;
+  if (!experience?.length) { c.innerHTML = html + '<div style="color:var(--text3);font-size:14px;text-align:center;padding:20px 0">No experience entries detected.</div>'; return; }
+  html += experience.map(e => `<div class="exp-entry">
+    <div class="exp-header"><div>
+      <div class="exp-title">${e.title||'Role'}</div>
+      ${e.company?`<div class="exp-company">${e.company}</div>`:''}
+    </div>${e.duration?`<div class="exp-duration">${e.duration}</div>`:''}</div>
+    ${e.responsibilities?.length?`<ul class="exp-bullets">${e.responsibilities.slice(0,6).map(r=>`<li>${r}</li>`).join('')}</ul>`:''}</div>`).join('');
+  c.innerHTML = html;
+}
+
+function renderContact(contact) {
+  const c = document.getElementById('contactContent');
+  const fields = [{key:'name',icon:'👤',label:'Name'},{key:'email',icon:'📧',label:'Email'},{key:'phone',icon:'📱',label:'Phone'},{key:'linkedin',icon:'💼',label:'LinkedIn'},{key:'github',icon:'🐙',label:'GitHub'},{key:'location',icon:'📍',label:'Location'}];
+  const found = fields.filter(f => contact?.[f.key]);
+  if (!found.length) { c.innerHTML = '<div style="color:var(--text3);font-size:14px">No contact info detected.</div>'; return; }
+  c.innerHTML = found.map(f => `<div class="info-row"><div class="info-icon">${f.icon}</div><div><div class="info-label">${f.label}</div><div class="info-val">${contact[f.key]}</div></div></div>`).join('');
+}
+
+function renderEducation(education) {
+  const c = document.getElementById('educationContent');
+  if (!education?.length) { c.innerHTML = '<div style="color:var(--text3);font-size:14px">No education entries detected.</div>'; return; }
+  const icons = {"PhD":"🎓","Master's":"🎓","MBA":"💼","B.Tech/BE":"🎓","B.Sc":"📚","BCA":"💻","BA":"📖","Diploma":"📜","Certification":"🏆"};
+  c.innerHTML = education.map(e => `<div class="edu-entry"><div class="edu-icon">${icons[e.degree]||'📚'}</div><div>
+    <div class="edu-degree">${e.degree}</div>
+    ${e.institution?`<div class="edu-inst">${e.institution}</div>`:(e.raw?`<div class="edu-inst" style="font-size:12px">${e.raw.substring(0,80)}</div>`:'')}
+    <div class="edu-meta">${[e.year,e.grade].filter(Boolean).join(' · ')}</div>
+    </div></div>`).join('');
+}
+
+function renderProjects(projects) {
+  const c = document.getElementById('projectsContent');
+  if (!projects?.length) { c.innerHTML = '<div style="color:var(--text3);font-size:14px">No projects detected.</div>'; return; }
+  c.innerHTML = projects.map(p => `<div class="proj-entry"><div class="proj-name">🚀 ${p.name}</div>
+    ${p.description?`<div class="proj-desc">${p.description.substring(0,200)}${p.description.length>200?'…':''}</div>`:''}
+    ${p.technologies?.length?`<div class="proj-techs">${p.technologies.map(t=>`<span class="proj-tech">${t}</span>`).join('')}</div>`:''}</div>`).join('');
+}
+
+function renderCerts(certs) {
+  const card = document.getElementById('certsCard');
+  if (!certs?.length) { card.style.display='none'; return; }
+  card.style.display='block';
+  document.getElementById('certsContent').innerHTML = `<div class="pills">${certs.map(c=>`<span class="pill pill-domain">🏆 ${c}</span>`).join('')}</div>`;
+}
+
+function renderSuggestions(parsed, score, geminiRecs, geminiAvail) {
+  const c = document.getElementById('suggestionsContent');
+
+  // Use Gemini recs if available and no errors
+  const validRecs = (geminiRecs||[]).filter(r => !r.error);
+
+  if (validRecs.length && geminiAvail) {
+    const icons = {impact:'⚡',skills:'🎯',formatting:'📐',keywords:'🔑',experience:'💼',education:'🎓',projects:'🚀',summary:'📝',linkedin:'💼'};
+    const prioOrder = ['high','medium','low'];
+    const sorted = [...validRecs].sort((a,b) => prioOrder.indexOf(a.priority) - prioOrder.indexOf(b.priority));
+    c.innerHTML = `<div style="display:flex;align-items:center;gap:8px;margin-bottom:16px">
+        <span style="font-size:13px;color:var(--text2)">Powered by</span>
+        <span class="gemini-badge-small">✦ Gemini AI</span>
+        <span style="font-size:12px;color:var(--text3)">${sorted.length} recommendations</span></div>` +
+      sorted.map(s => `<div class="suggestion-item sug-${s.priority}">
+        <div class="sug-icon">${icons[s.category]||'💡'}</div>
+        <div class="sug-content">
+          <div class="sug-title">${s.title} <span style="font-size:10px;padding:1px 6px;border-radius:6px;background:rgba(${s.priority==='high'?'248,113,113':s.priority==='medium'?'251,191,36':'56,189,248'},.12);color:var(--${s.priority==='high'?'red':s.priority==='medium'?'yellow':'accent3'})">${s.priority}</span></div>
+          ${s.problem?`<div class="sug-problem">⚠ ${s.problem}</div>`:''}
+          <div class="sug-detail">${s.fix}</div>
+          ${s.example?`<div class="sug-example">💡 ${s.example}</div>`:''}
+          ${s.impact?`<div class="sug-impact">📈 ${s.impact}</div>`:''}
+        </div></div>`).join('');
+    return;
+  }
+
+  // Fallback: client-side suggestions
+  const sugs = generateClientSuggestions(parsed, score);
+  if (!sugs.length) { c.innerHTML = `<div style="text-align:center;padding:30px 0;color:var(--text2)"><div style="font-size:36px;margin-bottom:12px">🎉</div><div style="font-family:var(--font-d);font-size:16px;font-weight:700;margin-bottom:8px">Looks Good!</div><div style="font-size:14px">Add a job description and API key for AI-powered tips.</div></div>`; return; }
+  const icons2 = {skills:'🎯',contact:'👤',summary:'📝',experience:'⚡',projects:'🚀',certifications:'🏆',keywords:'🔑'};
+  c.innerHTML = sugs.sort((a,b)=>['high','medium','low'].indexOf(a.priority)-['high','medium','low'].indexOf(b.priority))
+    .map(s => `<div class="suggestion-item sug-${s.priority}">
+      <div class="sug-icon">${icons2[s.type]||'💡'}</div>
+      <div class="sug-content"><div class="sug-title">${s.title}</div>
+      <div class="sug-detail">${s.detail}</div>
+      ${s.impact?`<div class="sug-impact">📈 ${s.impact}</div>`:''}</div></div>`).join('');
+}
+
+function generateClientSuggestions(parsed, score) {
+  const sugs = [];
+  if (score?.missing_skills?.length) sugs.push({type:'skills',priority:'high',title:'Add Missing Skills',detail:`Include: ${score.missing_skills.slice(0,7).join(', ')}`,impact:'+15–25 pts'});
+  const contact = parsed?.contact||{};
+  const mc = ['email','phone','linkedin'].filter(f=>!contact[f]);
+  if (mc.length) sugs.push({type:'contact',priority:'high',title:'Complete Contact Info',detail:`Missing: ${mc.join(', ')}`,impact:'+5–10 pts'});
+  if (!parsed?.summary) sugs.push({type:'summary',priority:'medium',title:'Add Professional Summary',detail:'3–4 sentence summary improves ATS and recruiter attention.',impact:'+8–12 pts'});
+  const lowBullets = (parsed?.experience||[]).filter(e=>(e.responsibilities||[]).length<3);
+  if (lowBullets.length) sugs.push({type:'experience',priority:'medium',title:'Strengthen Experience Bullets',detail:'Add 3–5 quantified achievements per role.',impact:'+10–18 pts'});
+  if (!(parsed?.projects?.length)) sugs.push({type:'projects',priority:'medium',title:'Add Projects Section',detail:'2–4 projects with tech stack and outcomes.',impact:'+6–10 pts'});
+  return sugs;
+}
+
+// ─── Tabs ────────────────────────────────────────────────────────
+function switchTab(tab) {
+  const tabs = ['skills','experience','profile','suggestions'];
+  document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', tabs[i]===tab));
+  document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+  document.getElementById(`tab-${tab}`).classList.add('active');
+}
+
+// ─── CHATBOT ─────────────────────────────────────────────────────
+function toggleChat() {
+  chatOpen = !chatOpen;
+  document.getElementById('chatFab').classList.toggle('open', chatOpen);
+  document.getElementById('chatWindow').classList.toggle('open', chatOpen);
+  document.getElementById('chatUnread').style.display = 'none';
+  if (chatOpen) setTimeout(() => document.getElementById('chatInput').focus(), 300);
+}
+
+function clearChat() {
+  chatHistory = [];
+  const msgs = document.getElementById('chatMessages');
+  msgs.innerHTML = `<div class="msg assistant"><div class="msg-avatar">🤖</div>
+    <div class="msg-bubble">Chat cleared! How can I help you with your resume? 😊</div></div>`;
+  updateChatSuggestions(analysisData?.parsed || null);
+}
+
+function updateChatSuggestions(parsed) {
+  const container = document.getElementById('chatSuggestions');
+  if (!parsed) {
+    container.innerHTML = `
+      <span class="chat-suggestion" onclick="sendSuggestion(this)">How do I improve my summary?</span>
+      <span class="chat-suggestion" onclick="sendSuggestion(this)">What skills should I learn next?</span>
+      <span class="chat-suggestion" onclick="sendSuggestion(this)">How to pass ATS screening?</span>`;
+    return;
+  }
+  const jd = document.getElementById('jdInput').value.trim();
+  const sugs = [
+    'How can I improve my resume score?',
+    'What are the most important missing skills?',
+    'Give me 3 stronger bullet points for my experience',
+    jd ? 'Am I a good fit for this job?' : 'What roles suit my skillset?',
+    'How should I optimize for ATS?',
+  ];
+  container.innerHTML = sugs.map(s => `<span class="chat-suggestion" onclick="sendSuggestion(this)">${s}</span>`).join('');
+}
+
+function sendSuggestion(el) {
+  document.getElementById('chatInput').value = el.textContent;
+  sendChatMessage();
+}
+
+function handleChatKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendChatMessage(); }
+}
+
+function autoResize(el) {
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 100) + 'px';
+}
+
+async function sendChatMessage() {
+  const input = document.getElementById('chatInput');
+  const msg   = input.value.trim();
+  if (!msg) return;
+  input.value = ''; input.style.height = 'auto';
+  document.getElementById('chatSend').disabled = true;
+
+  appendMessage('user', msg);
+  chatHistory.push({role:'user', content:msg});
+
+  // Typing indicator
+  const typingId = appendTyping();
+
+  try {
+    const body = {
+      message: msg,
+      history: chatHistory.slice(-10),
+      resume_context: analysisData?.parsed || null,
+      job_description: document.getElementById('jdInput').value.trim() || null,
+    };
+    const res  = await fetch('/api/chat', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    const data = await res.json();
+    removeTyping(typingId);
+    const reply = data.reply || 'Sorry, I could not process that.';
+    appendMessage('assistant', reply);
+    chatHistory.push({role:'assistant', content:reply});
+  } catch(e) {
+    removeTyping(typingId);
+    appendMessage('assistant', '⚠️ Connection error. Please check the server is running.');
+  } finally {
+    document.getElementById('chatSend').disabled = false;
+    document.getElementById('chatInput').focus();
+  }
+}
+
+function appendMessage(role, content) {
+  const msgs = document.getElementById('chatMessages');
+  const div  = document.createElement('div');
+  div.className = `msg ${role}`;
+  const formatted = content
+    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.*?)\*/g, '<em>$1</em>')
+    .replace(/^[-•] (.+)$/gm, '<li>$1</li>')
+    .replace(/(<li>[\s\S]+<\/li>)/, '<ul>$1</ul>')
+    .replace(/\n\n/g, '<br/><br/>')
+    .replace(/\n/g, '<br/>');
+  if (role === 'user') {
+    div.innerHTML = `<div class="msg-bubble">${formatted}</div><div class="msg-avatar">👤</div>`;
+  } else {
+    div.innerHTML = `<div class="msg-avatar">🤖</div><div class="msg-bubble">${formatted}</div>`;
+  }
+  msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+function appendTyping() {
+  const msgs = document.getElementById('chatMessages');
+  const id   = 'typing-' + Date.now();
+  msgs.innerHTML += `<div class="msg assistant" id="${id}">
+    <div class="msg-avatar" style="order:-1">🤖</div>
+    <div class="typing-indicator">
+      <div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div>
+    </div></div>`;
+  msgs.scrollTop = msgs.scrollHeight;
+  return id;
+}
+function removeTyping(id) {
+  document.getElementById(id)?.remove();
+}
+
+// ─── Utils ───────────────────────────────────────────────────────
+function animateNumber(el, target, dur) {
+  const start = performance.now();
+  const run = t => {
+    const p = Math.min((t-start)/dur,1);
+    const e = 1-Math.pow(1-p,3);
+    el.textContent = Math.round(target*e);
+    if (p<1) requestAnimationFrame(run);
+  };
+  requestAnimationFrame(run);
+}
+
+let toastTimer;
+function showToast(msg, type='info') {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.className = `toast ${type} show`;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 3500);
+}
+
+// ─── Download JSON ────────────────────────────────────────────────
+async function downloadJSON() {
+  if (!analysisData) { showToast('⚠️ Analyze a resume first', 'error'); return; }
+  try {
+    const res = await fetch('/api/export-json', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        parsed:   analysisData.parsed,
+        score:    analysisData.score,
+        filename: analysisData.filename,
+      })
+    });
+    if (!res.ok) throw new Error('Export failed');
+    const blob = await res.blob();
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    const safe = (analysisData.filename || 'resume').replace(/\.[^.]+$/, '');
+    a.href     = url;
+    a.download = `${safe}_hiresense.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    showToast('✅ JSON downloaded!', 'success');
+  } catch(e) {
+    showToast('❌ Export failed: ' + e.message, 'error');
+  }
+}
+</script>
+</body>
+</html>
