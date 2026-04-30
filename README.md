@@ -2,6 +2,7 @@
 
 An intelligent resume parsing and screening platform built with FastAPI, OCR, and NLP.
 
+## Live link - https://hiresense-omnz.onrender.com
 ## Features
 - 📄 **Resume Parsing** — PDF, image (PNG/JPEG), and plain text support
 - 🔍 **OCR Extraction** — Tesseract OCR for scanned PDFs and images
